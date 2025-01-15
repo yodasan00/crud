@@ -11,22 +11,22 @@ from django.contrib.auth.models import User
 
 def login_user(request):
     if request.method == "POST":
-        license = request.POST["licence"]
+        username = request.POST["username"]
         password = request.POST["password"]
         
       
-        if not User.objects.filter(username=license).exists():
-            messages.error(request, "Username is incorrect. Please try again.")
+        if not User.objects.filter(username=username).exists():
+            print(request, "Username is incorrect. Please try again.")
             return render(request, 'registration/log.html')
         
      
-        user = authenticate(request, username=license, password=password)
+        user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
             return render(request, "registration/sucessful.html")
         else:
-            messages.error(request, "Password is incorrect. Please try again.")
-            return render(request, 'registration/log.html')
+           print(request, "Password is incorrect. Please try again.")
+           return render(request, 'registration/log.html')
     else:
         return render(request, 'registration/log.html')
 
