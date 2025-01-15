@@ -14,12 +14,12 @@ def login_user(request):
         license = request.POST["licence"]
         password = request.POST["password"]
         
-        # Check if the username exists
+      
         if not User.objects.filter(username=license).exists():
             messages.error(request, "Username is incorrect. Please try again.")
             return render(request, 'registration/log.html')
         
-        # Authenticate the user
+     
         user = authenticate(request, username=license, password=password)
         if user is not None:
             login(request, user)

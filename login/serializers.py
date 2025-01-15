@@ -11,14 +11,14 @@ class userSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
-# Serializer for UserDetails
+
 class UserDetailsSerializer(serializers.ModelSerializer):
     user_profile = userSerializer(many=False)
     class Meta:
         model = UserDetails
         fields = ['id', 'user_profile', 'date_of_birth', 'user_status', 'phone_number']
 
-# Serializer for LicenseDetails
+
 class LicenseDetailsSerializer(serializers.ModelSerializer):
     user_profile = userSerializer(many=False)
     class Meta:
