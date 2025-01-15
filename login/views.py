@@ -38,12 +38,12 @@ def User_page(request):
 class UserDetailsSerializerViewset(viewsets.ModelViewSet):
     serializer_class = UserDetailsSerializer
     queryset = UserDetails.objects.all()
-    authentication_classes=(TokenAuthentication,)
+   # authentication_classes=(TokenAuthentication,)
 
 class LicenseDetailsSerializerViewset( viewsets.ModelViewSet):
     serializer_class = LicenseDetailsSerializer
     queryset = LicenseDetails.objects.all()
-    authentication_classes=(TokenAuthentication,)
+   # authentication_classes=(TokenAuthentication,)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
