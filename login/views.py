@@ -125,7 +125,12 @@ class VerifyOTPView(APIView):
            
             otp_instance.is_verified = True
             otp_instance.save()
-            return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
+            user_details = otp_instance.phone_number
+            user_details.user_status = True
+            user_details.save()
+            return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK) 
+
+           
         
         except OTPVerification.DoesNotExist:
             return Response({"error": "Invalid or expired OTP.(th)"}, status=status.HTTP_400_BAD_REQUEST)

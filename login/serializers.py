@@ -31,7 +31,7 @@ class LicenseDetailsSerializer(serializers.ModelSerializer):
 
 
 class OTPVerificationSerializer(serializers.ModelSerializer):
-    phone_number = serializers.StringRelatedField()  
+    phone_number = UserDetailsSerializer()
 
     class Meta:
         model = OTPVerification
