@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from.serializers import UserDetailsSerializer,LicenseDetailsSerializer,userSerializer
+from.serializers import UserDetailsSerializer,LicenseDetailsSerializer,userSerializer,OTPVerificationSerializer
 from .models import UserDetails,LicenseDetails,OTPVerification
 from rest_framework import viewsets
 from rest_framework.authentication import TokenAuthentication
@@ -10,8 +10,8 @@ from django.contrib.auth.models import User
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import OTPVerificationSerializer
-
+from datetime import timedelta
+from django.utils import timezone
 
 
 def login_user(request):
@@ -68,16 +68,16 @@ class CreateOTPView(APIView):
         
         # Check if the phone number exists in UserDetails
         try:
-            user_details = UserDetails.objects.get(phone_number=phone_number)
+            number = UserDetails.objects.get(phone_number=phone_number)
         except UserDetails.DoesNotExist:
             return Response({"error": "Phone number not found."}, status=status.HTTP_404_NOT_FOUND)
         
         # Generate OTP (you can replace this with a more secure generator)
         import random
-        otp_code = f"{random.randint(1000, 9999)}"
+        gen_otp = f"{random.randint(1000, 9999)}"
         
         # Create an OTPVerification record
-        otp_instance = OTPVerification.objects.create(phone_number=user_details, otp=otp_code)
+        otp_instance = OTPVerification.objects.create(phone_number=number, otp=gen_otp)
         
         # Serialize and return the OTP instance (you might exclude the OTP in production for security)
         serializer = OTPVerificationSerializer(otp_instance)
@@ -102,8 +102,7 @@ class VerifyOTPView(APIView):
             ).latest('created_at')
             
             # Check if the OTP is within the valid time window
-            from datetime import timedelta
-            from django.utils import timezone
+            
             if timezone.now() - otp_instance.created_at > timedelta(minutes=10):
                 return Response({"error": "OTP has expired."}, status=status.HTTP_400_BAD_REQUEST)
             
