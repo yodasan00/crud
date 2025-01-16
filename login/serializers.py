@@ -39,7 +39,7 @@ class OTPVerificationSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'is_verified']  
 
     def validate_otp(self, value):
-        """Validate that the OTP is exactly 4 digits."""
+        
         if not value.isdigit() or len(value) != 4:
             raise serializers.ValidationError("OTP must be exactly 4 numeric digits.")
         return value
