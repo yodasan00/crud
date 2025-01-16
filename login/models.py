@@ -16,7 +16,7 @@ validate_4_digit_otp = RegexValidator(
 )
 
 class UserDetails(models.Model):
-    user_profile = models.OneToOneField(User, on_delete=models.CASCADE) 
+    user_profile = models.OneToOneField(User, on_delete=models.CASCADE ,related_name="user_details") 
     date_of_birth = models.DateField(default=None)
     user_status = models.BooleanField(default=True)
     phone_number = models.CharField(max_length=10, validators=[phone_number_validator],unique=True)

@@ -31,6 +31,7 @@ def login_user(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
+            user.user_details.user_status = True#login status true
             return render(request, "registration/sucessful.html")
         else:
            print(request, "Password is incorrect. Please try again.")
@@ -125,9 +126,11 @@ class VerifyOTPView(APIView):
            
             otp_instance.is_verified = True
             otp_instance.save()
+
             user_details = otp_instance.phone_number
             user_details.user_status = True
             user_details.save()
+
             return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK) 
 
            
