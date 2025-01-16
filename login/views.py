@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from.serializers import UserDetailsSerializer,LicenseDetailsSerializer,userSerializer
+from.serializers import UserDetailsSerializer,LicenseDetailsSerializer,userSerializer,OTPVerificationSerializer
 from .models import UserDetails,LicenseDetails,OTPVerification
 from rest_framework import viewsets
 from rest_framework.authentication import TokenAuthentication
@@ -10,7 +10,10 @@ from django.contrib.auth.models import User
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import OTPVerificationSerializer
+from datetime import timedelta
+from django.utils import timezone
+import random
+from django.core.mail import send_mail
 
 
 
@@ -56,9 +59,10 @@ class UserViewSet(viewsets.ModelViewSet):
    
 
 
+
 class CreateOTPView(APIView):
     """
-    Handles OTP generation for a given phone number.
+    Handles OTP generation for a given phone number and sends OTP to the associated email.
     """
     def post(self, request):
         phone_number = request.data.get('phone_number')
@@ -71,15 +75,28 @@ class CreateOTPView(APIView):
             user_details = UserDetails.objects.get(phone_number=phone_number)
         except UserDetails.DoesNotExist:
             return Response({"error": "Phone number not found."}, status=status.HTTP_404_NOT_FOUND)
-        
-        # Generate OTP (you can replace this with a more secure generator)
-        import random
+
+        # Generate OTP
         otp_code = f"{random.randint(1000, 9999)}"
-        
+
         # Create an OTPVerification record
         otp_instance = OTPVerification.objects.create(phone_number=user_details, otp=otp_code)
+
+        # Send OTP via email (using the email associated with User model)
+        email = user_details.user_profile.email  # Get email from User model
         
-        # Serialize and return the OTP instance (you might exclude the OTP in production for security)
+        if email:
+            subject = "Your OTP Code"
+            message = f"Dear {user_details.user_profile.username},\n\nYour OTP is: {otp_code}\n\nThis code will expire in 10 minutes."
+            from_email = 'pushkarraj192003l@gmail.com'  # Your email for sending OTP
+            recipient_list = [email]  # Recipient email
+
+            try:
+                send_mail(subject, message, from_email, recipient_list)
+            except Exception as e:
+                return Response({"error": f"Failed to send email: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Serialize and return the OTP instance
         serializer = OTPVerificationSerializer(otp_instance)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -102,9 +119,8 @@ class VerifyOTPView(APIView):
             ).latest('created_at')
             
             # Check if the OTP is within the valid time window
-            from datetime import timedelta
-            from django.utils import timezone
-            if timezone.now() - otp_instance.created_at > timedelta(minutes=10):
+            
+            if timezone.now() - otp_instance.created_at > timedelta(minutes=1):
                 return Response({"error": "OTP has expired."}, status=status.HTTP_400_BAD_REQUEST)
             
             # Mark OTP as verified

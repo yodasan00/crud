@@ -59,7 +59,15 @@ class OTPVerification(models.Model):
         return f"OTP for {self.phone_number.phone_number}"
 
     def save(self, *args, **kwargs):
-        # Optional: Add custom save logic, e.g., restrict OTP reuse or expiration
+       
+        if OTPVerification.objects.filter(
+            phone_number=self.phone_number,
+            is_verified=False,
+            created_at__gte=timezone.now() - timedelta(minutes=1)
+        ).exists():
+            raise ValueError("An active OTP already exists for this phone number.")
+
+        \
         super().save(*args, **kwargs)
 
     @staticmethod
@@ -78,14 +86,15 @@ class OTPVerification(models.Model):
             otp_record = OTPVerification.objects.filter(
                 phone_number__phone_number=phone_number,
                 otp=otp,
-                is_verified=False,  # Ensure the OTP hasn't been used
+                is_verified=False,  
             ).latest('created_at')
 
-            # Check if OTP is within a valid time window (e.g., 10 minutes)
-            if timezone.now() - otp_record.created_at > timedelta(minutes=10):
+            
+            if timezone.now() - otp_record.created_at > timedelta(minutes=1):
                 return False
+            
 
-            # Mark the OTP as verified
+      
             otp_record.is_verified = True
             otp_record.save()
             return True

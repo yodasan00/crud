@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserDetails, LicenseDetails
+from .models import UserDetails, LicenseDetails,OTPVerification
 
 # Register UserDetails model with full field access
 @admin.register(UserDetails)
@@ -27,4 +27,10 @@ class LicenseDetailsAdmin(admin.ModelAdmin):
     # Enable fields to be edited on the form
     fields = ['user_profile', 'license_number', 'district_name', 'licensee_name', 'establishment_name', 
               'license_category', 'license_type', 'license_nature', 'yearly_license_fee']
-    
+@admin.register(OTPVerification)
+class OTPVerificationAdmin(admin.ModelAdmin):
+    list_display = ('phone_number', 'otp', 'created_at', 'is_verified')
+    search_fields = ('phone_number__phone_number', 'otp')
+    list_filter = ('is_verified', 'created_at')
+    ordering = ('-created_at',)
+    fields = ('phone_number', 'otp', 'created_at', 'is_verified')
