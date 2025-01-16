@@ -72,16 +72,7 @@ class OTPVerification(models.Model):
 
     @staticmethod
     def verify_otp(phone_number, otp):
-        """
-        Verifies if the provided OTP is valid for the given phone number.
-
-        Args:
-            phone_number (str): The phone number associated with the OTP.
-            otp (str): The OTP to be verified.
-
-        Returns:
-            bool: True if the OTP is valid, otherwise False.
-        """
+  
         try:
             otp_record = OTPVerification.objects.filter(
                 phone_number__phone_number=phone_number,

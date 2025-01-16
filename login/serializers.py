@@ -31,12 +31,12 @@ class LicenseDetailsSerializer(serializers.ModelSerializer):
 
 
 class OTPVerificationSerializer(serializers.ModelSerializer):
-    phone_number = serializers.StringRelatedField()  # Displays phone number from UserDetails
+    phone_number = serializers.StringRelatedField()  
 
     class Meta:
         model = OTPVerification
         fields = ['id', 'phone_number', 'otp', 'created_at', 'is_verified']
-        read_only_fields = ['id', 'created_at', 'is_verified']  # These fields are read-only
+        read_only_fields = ['id', 'created_at', 'is_verified']  
 
     def validate_otp(self, value):
         """Validate that the OTP is exactly 4 digits."""
