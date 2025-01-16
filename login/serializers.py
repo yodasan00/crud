@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import UserDetails, LicenseDetails
 from django.contrib.auth.models import User
+from .models import OTPVerification
+
+
 
 class userSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,3 +28,18 @@ class LicenseDetailsSerializer(serializers.ModelSerializer):
         model = LicenseDetails
         fields = ['id', 'user_profile', 'license_number', 'district_name', 'licensee_name', 'establishment_name', 
                   'license_category', 'license_type', 'license_nature', 'yearly_license_fee']
+
+
+class OTPVerificationSerializer(serializers.ModelSerializer):
+    phone_number = serializers.StringRelatedField()  # Displays phone number from UserDetails
+
+    class Meta:
+        model = OTPVerification
+        fields = ['id', 'phone_number', 'otp', 'created_at', 'is_verified']
+        read_only_fields = ['id', 'created_at', 'is_verified']  # These fields are read-only
+
+    def validate_otp(self, value):
+        """Validate that the OTP is exactly 4 digits."""
+        if not value.isdigit() or len(value) != 4:
+            raise serializers.ValidationError("OTP must be exactly 4 numeric digits.")
+        return value
