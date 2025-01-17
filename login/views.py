@@ -63,8 +63,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class CreateOTPView(APIView):
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 
+=======
+   
+>>>>>>> Stashed changes
 =======
    
 >>>>>>> Stashed changes
