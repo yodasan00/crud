@@ -58,17 +58,17 @@ class OTPVerification(models.Model):
     def __str__(self):
         return f"OTP for {self.phone_number.phone_number}"
 
-    def save(self, *args, **kwargs):
+    ''' def save(self, *args, **kwargs):
        
         if OTPVerification.objects.filter(
             phone_number=self.phone_number,
             is_verified=False,
-            created_at__gte=timezone.now() - timedelta(minutes=1)
+            created_at__gte=timezone.now() - timedelta(minutes=5)
         ).exists():
             raise ValueError("An active OTP already exists for this phone number.")
 
-        \
-        super().save(*args, **kwargs)
+    
+        super().save(*args, **kwargs)'''
 
     @staticmethod
     def verify_otp(phone_number, otp):
@@ -81,7 +81,7 @@ class OTPVerification(models.Model):
             ).latest('created_at')
 
             
-            if timezone.now() - otp_record.created_at > timedelta(minutes=1):
+            if timezone.now() - otp_record.created_at > timedelta(minutes=5):
                 return False
             
 

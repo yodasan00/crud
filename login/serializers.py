@@ -14,16 +14,16 @@ class userSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
-
 class UserDetailsSerializer(serializers.ModelSerializer):
-    user_profile = userSerializer(many=False)
+    user_profile = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Reference to the User model
+
     class Meta:
         model = UserDetails
         fields = ['id', 'user_profile', 'date_of_birth', 'user_status', 'phone_number']
 
 
 class LicenseDetailsSerializer(serializers.ModelSerializer):
-    user_profile = userSerializer(many=False)
+    user_profile=serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     class Meta:
         model = LicenseDetails
         fields = ['id', 'user_profile', 'license_number', 'district_name', 'licensee_name', 'establishment_name', 
@@ -31,15 +31,15 @@ class LicenseDetailsSerializer(serializers.ModelSerializer):
 
 
 class OTPVerificationSerializer(serializers.ModelSerializer):
-    phone_number = UserDetailsSerializer()
+    phone_number = serializers.StringRelatedField()  
 
     class Meta:
         model = OTPVerification
         fields = ['id', 'phone_number', 'otp', 'created_at', 'is_verified']
-        read_only_fields = ['id', 'created_at', 'is_verified']  
+        read_only_fields = ['id', 'created_at', 'is_verified'] # These fields are read-only
 
     def validate_otp(self, value):
-        
+       
         if not value.isdigit() or len(value) != 4:
-            raise serializers.ValidationError("OTP must be exactly 4 numeric digits.")
+            raise serializers.ValidationError("Enter a valid 4-digit OTP.")
         return value

@@ -62,12 +62,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CreateOTPView(APIView):
-<<<<<<< Updated upstream
 
 
-=======
-   
->>>>>>> Stashed changes
     def post(self, request):
         phone_number = request.data.get('phone_number')
         
@@ -91,7 +87,7 @@ class CreateOTPView(APIView):
         
         if email:
             subject = "Your OTP Code"
-            message = f"Dear  {user_details.user_profile.username},\n\nYour OTP is: {otp_code}\n\nThis code will expire in 1 minutes."
+            message = f"Dear  {user_details.user_profile.username},\n\nYour OTP is: {otp_code}\n\nThis code will expire in 5 minutes."
             from_email = 'pushkarraj192003l@gmail.com' 
             recipient_list = [email] 
 
@@ -124,7 +120,7 @@ class VerifyOTPView(APIView):
             
           
             
-            if timezone.now() - otp_instance.created_at > timedelta(minutes=1):
+            if timezone.now() - otp_instance.created_at > timedelta(minutes=5):
                 return Response({"error": "OTP has expired."}, status=status.HTTP_400_BAD_REQUEST)
             
            
