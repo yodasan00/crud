@@ -16,6 +16,7 @@ import random
 from django.core.mail import send_mail
 from rest_framework.authtoken.models import Token
 from django.http import JsonResponse
+from rest_framework.permissions import IsAuthenticated
 
 
 
@@ -53,20 +54,24 @@ def login_user(request):
 def User_page(request):
     return render(request,"registration/sucessful.html")
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = userSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
 class UserDetailsSerializerViewset(viewsets.ModelViewSet):
     serializer_class = UserDetailsSerializer
     queryset = UserDetails.objects.all()
-   # authentication_classes=(TokenAuthentication,)
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
 class LicenseDetailsSerializerViewset( viewsets.ModelViewSet):
     serializer_class = LicenseDetailsSerializer
     queryset = LicenseDetails.objects.all()
-   # authentication_classes=(TokenAuthentication,)
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = userSerializer
-   
 
 
 
