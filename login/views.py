@@ -14,6 +14,9 @@ from datetime import timedelta
 from django.utils import timezone
 import random
 from django.core.mail import send_mail
+from rest_framework.authtoken.models import Token
+from django.http import JsonResponse
+
 
 
 
@@ -22,20 +25,26 @@ def login_user(request):
         username = request.POST["username"]
         password = request.POST["password"]
         
-      
-        if not User.objects.filter(username=username).exists():
-            print(request, "Username is incorrect. Please try again.")
-            return render(request, 'registration/log.html')
         
-     
         user = authenticate(request, username=username, password=password)
+        
         if user is not None:
             login(request, user)
-            user.user_details.user_status = True#login status true
-            return render(request, "registration/sucessful.html")
+            
+            
+            user.user_details.user_status = True
+            user.user_details.save() 
+
+            token, created = Token.objects.get_or_create(user=user)
+            
+           
+            return JsonResponse({"token": token.key}, status=200)
+        
         else:
-           print(request, "Password is incorrect. Please try again.")
-           return render(request, 'registration/log.html')
+           
+            messages.error(request, "Invalid username or password.")
+            return redirect("login")  
+
     else:
         return render(request, 'registration/log.html')
 
