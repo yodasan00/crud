@@ -62,8 +62,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CreateOTPView(APIView):
+<<<<<<< Updated upstream
 
 
+=======
+   
+>>>>>>> Stashed changes
     def post(self, request):
         phone_number = request.data.get('phone_number')
         
