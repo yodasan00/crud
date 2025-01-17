@@ -46,8 +46,7 @@ def login_user(request):
             return redirect("login")  
 
     else:
-        return render(request, 'registration/log.html')
-
+           return JsonResponse({"error": "Invalid request method."}, status=405)
 @login_required
 
 def User_page(request):
