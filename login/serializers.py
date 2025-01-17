@@ -15,11 +15,12 @@ class userSerializer(serializers.ModelSerializer):
         return user
 
 class UserDetailsSerializer(serializers.ModelSerializer):
-    user_profile = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Reference to the User model
-
+    #user_profile = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Reference to the User model
+    user_profile=serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     class Meta:
         model = UserDetails
         fields = ['id', 'user_profile', 'date_of_birth', 'user_status', 'phone_number']
+   
 
 
 class LicenseDetailsSerializer(serializers.ModelSerializer):
@@ -28,6 +29,7 @@ class LicenseDetailsSerializer(serializers.ModelSerializer):
         model = LicenseDetails
         fields = ['id', 'user_profile', 'license_number', 'district_name', 'licensee_name', 'establishment_name', 
                   'license_category', 'license_type', 'license_nature', 'yearly_license_fee']
+   
 
 
 class OTPVerificationSerializer(serializers.ModelSerializer):

@@ -62,7 +62,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CreateOTPView(APIView):
-
     def post(self, request):
         phone_number = request.data.get('phone_number')
         
