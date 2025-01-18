@@ -18,7 +18,8 @@ from django.http import JsonResponse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
-
+from rest_framework.permissions import AllowAny
+import logging
 
 '''(note for self)Automatically associate the logged-in user's license_details with the license_details field in the serializer of the respective related models
     the user must have a license_details object associated with them, otherwise, a ValidationError will be raised.
@@ -38,6 +39,7 @@ class LicenseDetailsMixin:
 
 
 def login_user(request):
+    permission_classes = [AllowAny]
     if request.method == "POST":
         username = request.POST["username"]
         password = request.POST["password"]
@@ -133,6 +135,7 @@ class MemberDetailViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
 
 
 class CreateOTPView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         phone_number = request.data.get('phone_number')
         
@@ -156,7 +159,7 @@ class CreateOTPView(APIView):
                 remaining_time = timedelta(minutes=1) - time_diff
                 raise ValidationError(f"Please wait {remaining_time.seconds} seconds before requesting a new OTP.")
         except OTPVerification.DoesNotExist:
-            pass  # If no OTP requests exist for this phone numbe
+            pass  # If no OTP requests exist for this phone numbee
     
           
         otp_code = f"{random.randint(1000, 9999)}"
@@ -183,51 +186,57 @@ class CreateOTPView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+logger = logging.getLogger(__name__)
+
 class VerifyOTPView(APIView):
-   
+    permission_classes = [AllowAny]
+
     def post(self, request):
         phone_number = request.data.get('phone_number')
         otp = request.data.get('otp')
 
-        
-        if not phone_number :
-            return Response({"error": "Phone numbe  required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not phone_number:
+            logger.error("Phone number is required.")
+            return Response({"error": "Phone number is required."}, status=status.HTTP_400_BAD_REQUEST)
         if not otp:
+            logger.error("OTP is required.")
             return Response({"error": "OTP is required."}, status=status.HTTP_400_BAD_REQUEST)
-       
+
         try:
             user_details = UserDetails.objects.get(phone_number=phone_number)
+            logger.info(f"User found: {user_details}")
         except UserDetails.DoesNotExist:
+            logger.error(f"Phone number {phone_number} not found.")
             return Response({"error": "Phone number not found."}, status=status.HTTP_404_NOT_FOUND)
 
-
-
-      
         try:
             otp_instance = OTPVerification.objects.filter(
-                phone_number=user_details, otp=otp, is_verified=False
+                phone_number__phone_number=phone_number,
+                otp=otp,
+                is_verified=False
             ).latest('created_at')
-            
-          
-            
+
+            logger.info(f"OTP instance found: {otp_instance}")
+
             if timezone.now() - otp_instance.created_at > timedelta(minutes=5):
+                logger.error("OTP has expired.")
                 return Response({"error": "OTP has expired."}, status=status.HTTP_400_BAD_REQUEST)
-            
-           
+
             otp_instance.is_verified = True
             otp_instance.save()
 
             user_details.user_status = True
             user_details.save()
-                 
-            token, created = Token.objects.get_or_create(user=user_details)
-            
+
+            token, created = Token.objects.get_or_create(user=user_details.user_profile)
+
+            logger.info(f"Token created: {token.key}")
+
             return Response({
                 "message": "OTP verified successfully.",
-                "token": token.key 
-            }, status=status.HTTP_200_OK) 
+                "token": token.key
+            }, status=status.HTTP_200_OK)
 
-           
-        
         except OTPVerification.DoesNotExist:
+            logger.error("Invalid or expired OTP.")
             return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
