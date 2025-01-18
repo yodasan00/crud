@@ -43,7 +43,7 @@ class LicenseDetails(models.Model):
     yearly_license_fee = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"License {self.license_number} for {self.user.username}"
+        return f"License {self.license_number} for {self.user_profile.username}"
 
 
 class MGQDetails(models.Model):
@@ -105,7 +105,7 @@ class MemberDetail(models.Model):
     member_name = models.CharField(max_length=100)
     citizenship = models.CharField(max_length=50, choices=CITIZENSHIP_CHOICES, default='Indian')
     gender = models.CharField(max_length=10)
-    pan_number = models.CharField(max_length=50)
+    pan_number = models.CharField(max_length=50,validators=[pan_validator])
     mobile_number = models.CharField(max_length=15)
     email_id = models.EmailField(null=True, blank=True)
 
