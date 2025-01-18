@@ -17,7 +17,7 @@ from rest_framework.authtoken.models import Token
 from django.http import JsonResponse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError,PermissionDenied
 from rest_framework.permissions import AllowAny
 import logging
 
@@ -56,12 +56,15 @@ def login_user(request):
         
         if user is not None:
             login(request, user)
-            
-            user.user_details.user_status = True
-            user.user_details.save()
 
+
+            try:
+                user.user_details.user_status = True
+                user.user_details.save()
+            except AttributeError:
+                return JsonResponse({"error": "User details not found for the user /enter user_details."}, status=404)
+            # Create or retrieve the token for the authenticated user
             token, created = Token.objects.get_or_create(user=user)
-            
             return JsonResponse({"token": token.key}, status=200)
         else:
            
@@ -81,6 +84,15 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = userSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
+    def create(self, request, *args, **kwargs):
+        # Check if the user is authenticated and an admin
+        if not request.user.is_staff:  # is_staff is used to check for admin privileges
+            return Response({"error": "You do not have permission to create a user."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        # If the user is an admin, proceed with user creation
+        return super().create(request, *args, **kwargs)
+   
    
 
 class UserDetailsSerializerViewset(viewsets.ModelViewSet):
@@ -88,6 +100,16 @@ class UserDetailsSerializerViewset(viewsets.ModelViewSet):
     queryset = UserDetails.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+    
+        user = self.request.user  # Get the currently authenticated user
+        try:
+        # Fetch the user details for the authenticated user
+            return UserDetails.objects.filter(user_profile=user)
+        except UserDetails.DoesNotExist:
+        # If user details don't exist, raise a permission denied error
+            raise PermissionDenied("User details not found.")
 
     # Automatically associate the logged-in user with the user_profile field(note for self : in UserDetails model)
     def perform_create(self, serializer):
@@ -99,6 +121,19 @@ class LicenseDetailsSerializerViewset( viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
+  
+    def get_queryset(self):
+        user = self.request.user  # Get the currently authenticated user
+        # Return license details for the authenticated user or  a not fouind msg
+        queryset = LicenseDetails.objects.filter(user_profile=user)
+        
+        # If no license details exist for the user, raise PermissionDenied or return an empty queryset
+        if not queryset.exists():
+            raise PermissionDenied("License details not found.")
+    
+        return queryset
+
+        
     # Automatically associate the logged-in user with LicenseDetails model  using user_profile field in LicenseDetails model
     def perform_create(self, serializer):
        
@@ -112,6 +147,32 @@ class MGQDetailsViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
    
+    def get_queryset(self):
+        user = self.request.user  # Get the currently authenticated user
+        
+        # Find the user's corresponding LicenseDetails
+        try:
+            license_details = LicenseDetails.objects.get(user_profile=user)
+        except LicenseDetails.DoesNotExist:
+            raise PermissionDenied("License details not found for the user.")
+        
+        # Return MGQDetails associated with the found LicenseDetails
+        queryset = MGQDetails.objects.filter(license_details=license_details)
+        
+        return queryset
+
+    def perform_create(self, serializer):
+        # Get the currently authenticated user
+        user = self.request.user
+        
+        # Find the user's corresponding LicenseDetails
+        try:
+            license_details = LicenseDetails.objects.get(user_profile=user)
+        except LicenseDetails.DoesNotExist:
+            raise PermissionDenied("License details not found for the user.")
+        
+        # Automatically associate the LicenseDetails with MGQDetails (no need to link user_profile explicitly)
+        serializer.save(license_details=license_details)
 
 class AddressDetailsViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
     queryset = AddressDetails.objects.all()
@@ -120,11 +181,65 @@ class AddressDetailsViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
+    def get_queryset(self):
+        user = self.request.user  # Get the currently authenticated user
+        
+        # Find the user's corresponding LicenseDetails
+        try:
+            license_details = LicenseDetails.objects.get(user_profile=user)
+        except LicenseDetails.DoesNotExist:
+            raise PermissionDenied("License details not found for the user.")
+        
+        # Return MGQDetails associated with the found LicenseDetails
+        queryset = MGQDetails.objects.filter(license_details=license_details)
+        
+        return queryset
+    def perform_create(self, serializer):
+        # Get the currently authenticated user
+        user = self.request.user
+        
+        # Find the user's corresponding LicenseDetails
+        try:
+            license_details = LicenseDetails.objects.get(user_profile=user)
+        except LicenseDetails.DoesNotExist:
+            raise PermissionDenied("License details not found for the user.")
+        
+        # Automatically associate the LicenseDetails with MGQDetails (no need to link user_profile explicitly)
+        serializer.save(license_details=license_details)
+
+
 class UnitDetailsViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
     queryset = UnitDetails.objects.all()
     serializer_class = UnitDetailsSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user  # Get the currently authenticated user
+        
+        # Find the user's corresponding LicenseDetails
+        try:
+            license_details = LicenseDetails.objects.get(user_profile=user)
+        except LicenseDetails.DoesNotExist:
+            raise PermissionDenied("License details not found for the user.")
+        
+        # Return MGQDetails associated with the found LicenseDetails
+        queryset = MGQDetails.objects.filter(license_details=license_details)
+        
+        return queryset
+
+    def perform_create(self, serializer):
+        # Get the currently authenticated user
+        user = self.request.user
+        
+        # Find the user's corresponding LicenseDetails
+        try:
+            license_details = LicenseDetails.objects.get(user_profile=user)
+        except LicenseDetails.DoesNotExist:
+            raise PermissionDenied("License details not found for the user.")
+        
+        # Automatically associate the LicenseDetails with MGQDetails (no need to link user_profile explicitly)
+        serializer.save(license_details=license_details)
 
 
 
@@ -133,7 +248,35 @@ class MemberDetailViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
     serializer_class = MemberDetailSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+    
 
+    def get_queryset(self):
+        user = self.request.user  # Get the currently authenticated user
+        
+        # Find the user's corresponding LicenseDetails
+        try:
+            license_details = LicenseDetails.objects.get(user_profile=user)
+        except LicenseDetails.DoesNotExist:
+            raise PermissionDenied("License details not found for the user.")
+        
+        # Return MGQDetails associated with the found LicenseDetails
+        queryset = MGQDetails.objects.filter(license_details=license_details)
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        # Get the currently authenticated user
+        user = self.request.user
+        
+        # Find the user's corresponding LicenseDetails
+        try:
+            license_details = LicenseDetails.objects.get(user_profile=user)
+        except LicenseDetails.DoesNotExist:
+            raise PermissionDenied("License details not found for the user.")
+        
+        # Automatically associate the LicenseDetails with MGQDetails (no need to link user_profile explicitly)
+        serializer.save(license_details=license_details)
+    
 
 
 

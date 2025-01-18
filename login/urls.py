@@ -12,7 +12,7 @@ from .views import CreateOTPView, VerifyOTPView,  LicenseDetailsSerializerViewse
 router=routers.DefaultRouter()
 router.register('users',views.UserViewSet)
 router.register('user-det',views.UserDetailsSerializerViewset)
-router.register('license-det',LicenseDetailsSerializerViewset) 
+router.register('license-details',LicenseDetailsSerializerViewset) 
 router.register('mgq-details', MGQDetailsViewSet)
 router.register('address-details', AddressDetailsViewSet)
 router.register('unit-details', UnitDetailsViewSet)

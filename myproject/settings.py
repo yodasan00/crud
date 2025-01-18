@@ -152,3 +152,5 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',  # Permission to access only authenticated users
     ],
 }
+
+CSRF_COOKIE_SECURE = False
