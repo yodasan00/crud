@@ -21,6 +21,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 import logging
 
+
 '''(note for self)Automatically associate the logged-in user's license_details with the license_details field in the serializer of the respective related models
     the user must have a license_details object associated with them, otherwise, a ValidationError will be raised.
     if the user does not have licence_details then mgq_details   and other details will  have no meaning 
@@ -73,6 +74,8 @@ def login_user(request):
 def User_page(request):
     return render(request,"registration/sucessful.html")
 
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = userSerializer
@@ -116,12 +119,13 @@ class AddressDetailsViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-  
+
 class UnitDetailsViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
     queryset = UnitDetails.objects.all()
     serializer_class = UnitDetailsSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
 
 
 class MemberDetailViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
@@ -187,6 +191,7 @@ class CreateOTPView(APIView):
 
 
 logger = logging.getLogger(__name__)
+
 
 class VerifyOTPView(APIView):
     permission_classes = [AllowAny]
