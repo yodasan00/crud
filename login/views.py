@@ -230,4 +230,4 @@ class VerifyOTPView(APIView):
            
         
         except OTPVerification.DoesNotExist:
-            return Response({"error": "Invalid or expired OTP.(th)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
