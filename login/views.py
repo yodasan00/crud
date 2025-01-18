@@ -2,9 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from.serializers import UserDetailsSerializer,LicenseDetailsSerializer,userSerializer,OTPVerificationSerializer
-from .models import UserDetails,LicenseDetails,OTPVerification
-from rest_framework import viewsets
+from.serializers import UserDetailsSerializer,LicenseDetailsSerializer,userSerializer,MGQDetailsSerializer,AddressDetailsSerializer,UnitDetailsSerializer,MemberDetailSerializer,OTPVerificationSerializer
+from .models import UserDetails,LicenseDetails,MGQDetails,AddressDetails,UnitDetails,MemberDetail,OTPVerification
 from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth.models import User
 from rest_framework.views import APIView
@@ -17,8 +16,25 @@ from django.core.mail import send_mail
 from rest_framework.authtoken.models import Token
 from django.http import JsonResponse
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError
 
 
+'''(note for self)Automatically associate the logged-in user's license_details with the license_details field in the serializer of the respective related models
+    the user must have a license_details object associated with them, otherwise, a ValidationError will be raised.
+    if the user does not have licence_details then mgq_details   and other details will  have no meaning 
+
+'''
+class LicenseDetailsMixin:
+    def perform_create(self, serializer):
+        try:
+            license_details = self.request.user.license_details
+        except LicenseDetails.DoesNotExist:
+        
+            raise ValidationError("User does not have associated license details.")
+
+       
+        serializer.save(license_details=license_details)
 
 
 def login_user(request):
@@ -26,28 +42,30 @@ def login_user(request):
         username = request.POST["username"]
         password = request.POST["password"]
         
-        
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+           
+            return JsonResponse({"error": "Username does not exist."}, status=400)
+
+   
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
             login(request, user)
             
-            
             user.user_details.user_status = True
-            user.user_details.save() 
+            user.user_details.save()
 
             token, created = Token.objects.get_or_create(user=user)
             
-           
             return JsonResponse({"token": token.key}, status=200)
-        
         else:
            
-            messages.error(request, "Invalid username or password.")
-            return redirect("login")  
-
+            return JsonResponse({"error": "Incorrect password."}, status=400)
+    
     else:
-           return JsonResponse({"error": "Invalid request method."}, status=405)
+        return JsonResponse({"error": "Invalid request method."}, status=405) 
 @login_required
 
 def User_page(request):
@@ -58,6 +76,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = userSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
+   
 
 class UserDetailsSerializerViewset(viewsets.ModelViewSet):
     serializer_class = UserDetailsSerializer
@@ -65,11 +84,50 @@ class UserDetailsSerializerViewset(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
+    # Automatically associate the logged-in user with the user_profile field(note for self : in UserDetails model)
+    def perform_create(self, serializer):
+        serializer.save(user_profile=self.request.user)
+
 class LicenseDetailsSerializerViewset( viewsets.ModelViewSet):
     serializer_class = LicenseDetailsSerializer
     queryset = LicenseDetails.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
+    # Automatically associate the logged-in user with LicenseDetails model  using user_profile field in LicenseDetails model
+    def perform_create(self, serializer):
+       
+        serializer.save(user_profile=self.request.user)
+
+
+
+class MGQDetailsViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
+    queryset = MGQDetails.objects.all()
+    serializer_class = MGQDetailsSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+   
+
+class AddressDetailsViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
+    queryset = AddressDetails.objects.all()
+    serializer_class = AddressDetailsSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+  
+class UnitDetailsViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
+    queryset = UnitDetails.objects.all()
+    serializer_class = UnitDetailsSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+
+class MemberDetailViewSet(LicenseDetailsMixin,viewsets.ModelViewSet):
+    queryset = MemberDetail.objects.all()
+    serializer_class = MemberDetailSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
 
 
 
@@ -86,8 +144,21 @@ class CreateOTPView(APIView):
             user_details = UserDetails.objects.get(phone_number=phone_number)
         except UserDetails.DoesNotExist:
             return Response({"error": "Phone number not found."}, status=status.HTTP_404_NOT_FOUND)
+         
 
-       
+        '''addition of rate limiting functionality'''
+        try:
+            last_otp_request =user_details.otp_verifications.latest('created_at')
+
+            time_diff = timezone.now() - last_otp_request.created_at
+            if time_diff < timedelta(minutes=1):  
+                '''one otp only in a minute'''
+                remaining_time = timedelta(minutes=1) - time_diff
+                raise ValidationError(f"Please wait {remaining_time.seconds} seconds before requesting a new OTP.")
+        except OTPVerification.DoesNotExist:
+            pass  # If no OTP requests exist for this phone numbe
+    
+          
         otp_code = f"{random.randint(1000, 9999)}"
 
        
@@ -117,16 +188,24 @@ class VerifyOTPView(APIView):
     def post(self, request):
         phone_number = request.data.get('phone_number')
         otp = request.data.get('otp')
+
         
         if not phone_number :
             return Response({"error": "Phone numbe  required."}, status=status.HTTP_400_BAD_REQUEST)
         if not otp:
             return Response({"error": "OTP is required."}, status=status.HTTP_400_BAD_REQUEST)
-        
+       
+        try:
+            user_details = UserDetails.objects.get(phone_number=phone_number)
+        except UserDetails.DoesNotExist:
+            return Response({"error": "Phone number not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+
       
         try:
             otp_instance = OTPVerification.objects.filter(
-                phone_number__phone_number=phone_number, otp=otp, is_verified=False
+                phone_number=user_details, otp=otp, is_verified=False
             ).latest('created_at')
             
           
@@ -138,11 +217,15 @@ class VerifyOTPView(APIView):
             otp_instance.is_verified = True
             otp_instance.save()
 
-            user_details = otp_instance.phone_number
             user_details.user_status = True
             user_details.save()
-
-            return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK) 
+                 
+            token, created = Token.objects.get_or_create(user=user_details)
+            
+            return Response({
+                "message": "OTP verified successfully.",
+                "token": token.key 
+            }, status=status.HTTP_200_OK) 
 
            
         
